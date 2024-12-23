@@ -3,14 +3,12 @@
 # Original Author:   crombiecrunch
 # Fork Author: manfromafar
 # Current Author: Vaudois
+# Modified by: CodePal
 #
 # Program:
-#   Install yiimp on Ubuntu 18.04 & 20.04* running Nginx, MariaDB, and php7.3**
-#   *  phase beta (final if run :-D ) for testing (possible more errors)
-#   ** not supported
-#   v2.2
+#   Install yiimp on Ubuntu 20.04 & 22.04 running Nginx, MariaDB, and PHP
+#   v2.3
 ################################################################################
-
 if [ -z "${TAG}" ]; then
 	TAG=v2.2
 fi
@@ -200,7 +198,7 @@ clear
 		hide_output apt-get -y purge apache2 apache2-*
 		hide_output apt-get -y --purge autoremove
 	fi
-
+# sudo add-apt-repository -y ppa:ondrej/nginx-mainline
 	apt_install nginx
 	hide_output sudo rm /etc/nginx/sites-enabled/default
 	hide_output sudo systemctl start nginx.service
@@ -237,72 +235,87 @@ clear
 	sudo systemctl status mysql | sed -n "1,3p"
 	echo -e "$GREEN Done...$COL_RESET"
 
-	# Installing Installing php and other files
-	echo
-	echo -e "$CYAN => Update system & Install PHP & build-essential : $COL_RESET"
-	sleep 3
-
-	apt_install software-properties-common build-essential
-
-	if [ ! -f /etc/apt/sources.list.d/ondrej-php-bionic.list ]; then
-		hide_output sudo add-apt-repository -y ppa:ondrej/php
-	fi
- 	echo -e "$YELLOW >--> Updating system...$COL_RESET"
-  	hide_output sudo apt -y update
-   	sleep 2
-   	echo -e "$YELLOW >--> Installing php...$COL_RESET"
-	if [[ ("$DISTRO" == "18") ]]; then
-		apt_install php7.3-fpm php7.3-opcache php7.3 php7.3-common php7.3-gd php7.3-mysql php7.3-imap php7.3-cli
-		apt_install php7.3-cgi php-pear imagemagick libruby php7.3-curl php7.3-intl php7.3-pspell mcrypt
-		apt_install php7.3-recode php7.3-sqlite3 php7.3-tidy php7.3-xmlrpc php7.3-xsl php-imagick php7.3-zip
-		apt_install php7.3-mbstring libpsl-dev libnghttp2-dev php7.3-memcache php7.3-memcached php-curl
-		apt_install php-mbstring php-zip php-gd php-json memcached php-memcache
-		sudo phpenmod mbstring
-		apt_install php-gettext
-  		echo
-		sleep 2
-		hide_output sudo systemctl start php7.3-fpm
-		sudo systemctl status php7.3-fpm | sed -n "1,3p"
-		PHPVERSION=7.3
-	fi
-	if [[ ("$DISTRO" == "20") ]]; then
-		apt_install php8.2-fpm php8.2-opcache php8.2 php8.2-common php8.2-gd php8.2-mysql php8.2-imap php8.2-cli
-		apt_install php8.2-cgi php8.2-curl php8.2-intl php8.2-pspell
-		apt_install php8.2-sqlite3 php8.2-tidy php8.2-xmlrpc php8.2-xsl php8.2-zip
-		apt_install php8.2-mbstring php8.2-memcache php8.2-memcached memcached php-memcache php-memcached
-		echo
-		sleep 2
-		hide_output sudo systemctl start php8.2-fpm
-		sudo systemctl status php8.2-fpm | sed -n "1,3p"
-		PHPVERSION=8.2
-	fi
-
-	sleep 5
-	echo -e "$GREEN Done...$COL_RESET"
+	# Installing PHP and other files
+echo
+echo -e "$CYAN => Update system & Install PHP & build-essential : $COL_RESET"
+sleep 3
+ 
+apt_install software-properties-common build-essential
+ 
+# if [ ! -f /etc/apt/sources.list.d/ondrej-php-focal.list ]; then
+    # hide_output sudo add-apt-repository -y ppa:ondrej/php
+# fi
+echo -e "$YELLOW >--> Updating system...$COL_RESET"
+hide_output sudo apt -y update
+sleep 2
+echo -e "$YELLOW >--> Installing php...$COL_RESET"
+ 
+# Determine Ubuntu version
+UBUNTU_VERSION=$(lsb_release -rs)
+ 
+if [[ "$UBUNTU_VERSION" == "20.04" ]]; then
+    apt_install php7.4-fpm php7.4-opcache php7.4 php7.4-common php7.4-gd php7.4-mysql php7.4-imap php7.4-cli
+    apt_install php7.4-cgi php7.4-curl php7.4-intl php7.4-pspell
+    apt_install php7.4-sqlite3 php7.4-tidy php7.4-xmlrpc php7.4-xsl php7.4-zip
+    apt_install php7.4-mbstring php7.4-memcache php7.4-memcached memcached php-memcache php-memcached
+    echo
+    sleep 2
+    hide_output sudo systemctl start php7.4-fpm
+    sudo systemctl status php7.4-fpm | sed -n "1,3p"
+    PHPVERSION=7.4
+elif [[ "$UBUNTU_VERSION" == "22.04" ]]; then
+    apt_install php8.2-fpm php8.2-opcache php8.2 php8.2-common php8.2-gd php8.2-mysql php8.2-imap php8.2-cli
+    apt_install php8.2-cgi php8.2-curl php8.2-intl php8.2-pspell
+    apt_install php8.2-sqlite3 php8.2-tidy php8.2-xmlrpc php8.2-xsl php8.2-zip
+    apt_install php8.2-mbstring php8.2-memcache php8.2-memcached memcached php-memcache php-memcached
+    echo
+    sleep 2
+    hide_output sudo systemctl start php8.2-fpm
+    sudo systemctl status php8.2-fpm | sed -n "1,3p"
+    PHPVERSION=8.2
+else
+    echo -e "$RED Unsupported Ubuntu version. This script supports Ubuntu 20.04 and 22.04 only.$COL_RESET"
+    exit 1
+fi
+ 
+sleep 5
+echo -e "$GREEN Done...$COL_RESET"
 
 	# fix CDbConnection failed to open the DB connection.
-	echo
-	echo -e "$CYAN => Fixing DBconnection issue $COL_RESET"
- 	if [[ ("$DISTRO" == "18") ]]; then
-		apt_install php8.1-mysql
- 	else
- 		apt_install php8.2-mysql
-  	fi
-	echo
-	hide_output service nginx restart
-
-	echo -e "$GREEN Done$COL_RESET"
-    
-	# Installing other needed files
-	echo
-	echo -e "$CYAN => Installing other needed files : $COL_RESET"
-	sleep 3
-
-	apt_install libgmp3-dev libmysqlclient-dev libcurl4-gnutls-dev libkrb5-dev libldap2-dev libidn11-dev gnutls-dev \
-	librtmp-dev sendmail mutt screen git
-	
-	echo -e "$GREEN Done...$COL_RESET"
-	sleep 3
+echo
+echo -e "$CYAN => Fixing DBconnection issue $COL_RESET"
+if [[ "$UBUNTU_VERSION" == "20.04" ]]; then 
+    apt_install php7.4-fpm php7.4-mysql
+elif [[ "$UBUNTU_VERSION" == "22.04" ]]; then
+    apt_install php8.2-fpm php8.2-mysql
+else
+    echo -e "$RED Error: Unsupported Ubuntu version $UBUNTU_VERSION $COL_RESET"
+    exit 1
+fi
+echo
+ 
+# Restart PHP-FPM service instead of Apache
+if [[ "$UBUNTU_VERSION" == "20.04" ]]; then
+    hide_output service php7.4-fpm restart
+elif [[ "$UBUNTU_VERSION" == "22.04" ]]; then
+    hide_output service php8.2-fpm restart
+fi
+ 
+# Restart Nginx
+hide_output service nginx restart
+ 
+echo -e "$GREEN Done$COL_RESET"
+ 
+# Installing other needed files
+echo
+echo -e "$CYAN => Installing other needed files : $COL_RESET"
+sleep 3
+ 
+apt_install libgmp3-dev libmysqlclient-dev libcurl4-gnutls-dev libkrb5-dev libldap2-dev libidn11-dev gnutls-dev \
+librtmp-dev sendmail mutt screen git
+ 
+echo -e "$GREEN Done...$COL_RESET"
+sleep 3
 
 	# Installing Package to compile crypto currency
 	echo
@@ -365,18 +378,20 @@ clear
     echo -e "$GREEN Done...$COL_RESET"
 
 	# Installing PhpMyAdmin
-	echo
-	echo -e "$CYAN => Installing phpMyAdmin $COL_RESET"
-	sleep 3
-
-	echo "phpmyadmin phpmyadmin/reconfigure-webserver multiselect" | sudo debconf-set-selections
-	echo "phpmyadmin phpmyadmin/dbconfig-install boolean true" | sudo debconf-set-selections
-	echo "phpmyadmin phpmyadmin/mysql/admin-user string root" | sudo debconf-set-selections
-	echo "phpmyadmin phpmyadmin/mysql/admin-pass password $rootpasswd" | sudo debconf-set-selections
-	echo "phpmyadmin phpmyadmin/mysql/app-pass password $AUTOGENERATED_PASS" | sudo debconf-set-selections
-	echo "phpmyadmin phpmyadmin/app-password-confirm password $AUTOGENERATED_PASS" | sudo debconf-set-selections
-
-	apt_install phpmyadmin
+echo
+echo -e "$CYAN => Installing phpMyAdmin $COL_RESET"
+sleep 3
+ 
+# Pre-configure phpMyAdmin to skip Apache configuration
+echo "phpmyadmin phpmyadmin/reconfigure-webserver multiselect none" | sudo debconf-set-selections
+echo "phpmyadmin phpmyadmin/dbconfig-install boolean true" | sudo debconf-set-selections
+echo "phpmyadmin phpmyadmin/mysql/admin-user string root" | sudo debconf-set-selections
+echo "phpmyadmin phpmyadmin/mysql/admin-pass password $rootpasswd" | sudo debconf-set-selections
+echo "phpmyadmin phpmyadmin/mysql/app-pass password $AUTOGENERATED_PASS" | sudo debconf-set-selections
+echo "phpmyadmin phpmyadmin/app-password-confirm password $AUTOGENERATED_PASS" | sudo debconf-set-selections
+ 
+# Install phpMyAdmin without recommended packages (to avoid Apache installation)
+sudo apt-get install -y phpmyadmin --no-install-recommends
 	
     echo -e "$GREEN Done...$COL_RESET"
 
@@ -702,38 +717,30 @@ clear
 	cd ~
 	cd ${absolutepath}/${nameofinstall}/conf/db
 	
-	if [[ ("$DISTRO" == "20") ]]; then
-		# Import sql dump
-		# sudo zcat 2019-11-10-yiimp.sql.gz | sudo mysql -u root -p=${rootpasswd} yiimpfrontend
-		sudo zcat 2023-05-28-yiimp.sql.gz | sudo mysql -u root -p=${rootpasswd} yiimpfrontend
-		
-		if [[ ("$yiimpver" == "5") ]]; then
-			echo -e "$YELLOW => Selected install $yiimpver more sql adding... $COL_RESET"
-			sleep 5
-			cd ${absolutepath}/${nameofinstall}/conf/db
-			sudo mysql -u root -p=${rootpasswd} yiimpfrontend --force < 28-05-2023-articles.sql
-			sudo mysql -u root -p=${rootpasswd} yiimpfrontend --force < 28-05-2023-article_ratings.sql
-			sudo mysql -u root -p=${rootpasswd} yiimpfrontend --force < 28-05-2023-article_comments.sql
-			sudo mysql -u root -p=${rootpasswd} yiimpfrontend --force < 2023-02-20-coins.sql
-		fi
-	else
-		# Import sql dump
-		# sudo zcat 2019-11-10-yiimp.sql.gz | sudo mysql --defaults-group-suffix=host1
-		sudo zcat 2023-05-28-yiimp.sql.gz | sudo mysql --defaults-group-suffix=host1
-		
-		if [[ ("$yiimpver" == "5") ]]; then
-			echo -e "$YELLOW => Selected install $yiimpver more sql adding... $COL_RESET"
-			sleep 5
-			cd ${absolutepath}/${nameofinstall}/conf/db
-			sudo mysql --defaults-group-suffix=host1 --force < 28-05-2023-articles.sql
-			sudo mysql --defaults-group-suffix=host1 --force < 28-05-2023-article_ratings.sql
-			sudo mysql --defaults-group-suffix=host1 --force < 28-05-2023-article_comments.sql
-			sudo mysql --defaults-group-suffix=host1 --force < 2023-02-20-coins.sql
-		fi
-	fi
-	cd ~
-
-	echo -e "$GREEN Done...$COL_RESET"
+		# Check Ubuntu version
+UBUNTU_VERSION=$(lsb_release -rs)
+ 
+if [[ "$UBUNTU_VERSION" == "20.04" || "$UBUNTU_VERSION" == "22.04" ]]; then
+    # Import sql dump
+    sudo zcat 2023-05-28-yiimp.sql.gz | sudo mysql -u root -p="${rootpasswd}" yiimpfrontend
+ 
+    if [[ "$yiimpver" == "5" ]]; then
+        echo -e "$YELLOW => Selected install $yiimpver more sql adding... $COL_RESET"
+        sleep 5
+        cd "${absolutepath}/${nameofinstall}/conf/db" || exit
+        sudo mysql -u root -p="${rootpasswd}" yiimpfrontend --force < 28-05-2023-articles.sql
+        sudo mysql -u root -p="${rootpasswd}" yiimpfrontend --force < 28-05-2023-article_ratings.sql
+        sudo mysql -u root -p="${rootpasswd}" yiimpfrontend --force < 28-05-2023-article_comments.sql
+        sudo mysql -u root -p="${rootpasswd}" yiimpfrontend --force < 2023-02-20-coins.sql
+    fi
+else
+    echo -e "$RED Unsupported Ubuntu version. This script is designed for Ubuntu 20.04 and 22.04 only. $COL_RESET"
+    exit 1
+fi
+ 
+cd ~ || exit
+ 
+echo -e "$GREEN Done...$COL_RESET"
 
 	# Generating a basic Yiimp serverconfig.php
 	echo
@@ -786,7 +793,7 @@ clear
 		echo -e "$CYAN => Installing wireguard support.... $COL_RESET"
 		sleep 3
 		hide_output sudo apt update -y
-		hide_output sudo apt install wireguard-dkms wireguard-tools -y
+		hide_output sudo apt_install wireguard-dkms wireguard-tools -y
 
 		(umask 077 && printf "[Interface]\nPrivateKey = " | sudo tee /etc/wireguard/wg0.conf > /dev/null)
 		wg genkey | sudo tee -a /etc/wireguard/wg0.conf | wg pubkey | sudo tee /etc/wireguard/publickey
@@ -949,19 +956,36 @@ clear
 	#fix error screen main "backup sql frontend"
 	sudo sed -i "s|/root/backup|/var/yiimp/sauv|g" /var/web/yaamp/core/backend/system.php
 
-	#fix error phpmyadmin
-	FILELIBPHPMYADMIN=/usr/share/phpmyadmin/libraries/sql.lib.php
-	if [[ -f "${FILELIBPHPMYADMIN}" ]]; then
-		sudo sed -i "s/|\s*\((count(\$analyzed_sql_results\['select_expr'\]\)/| (\1)/g" /usr/share/phpmyadmin/libraries/sql.lib.php
-	fi
-
- 	if [[ ("$DISTRO" == "20") ]]; then
- 		sudo sed -i "s|ExplorerController::createUrl|Yii::app()->createUrl|g" /var/web/yaamp/models/db_coinsModel.php
-   		sleep 2
-		SEARCHLINECOINID="echo\sCUFHtml::openTag('fieldset',\sarray('class'=>'inlineLabels'));"
-		INSERTLINESCOINID="echo\tCUFHtml::openTag('fieldset',\tarray('class'=>'inlineLabels'));\nif(empty(\$coin\->id))\t\$coin\->id\t=\tdbolist(\"SELECT\t(MAX(id)+1)\tFROM\tcoins\")[0]['(MAX(id)+1)'];"
-		sudo sed -i "s#${SEARCHLINECOINID}#"${INSERTLINESCOINID}"#" /var/web/yaamp/modules/site/coin_form.php
-  	fi
+	# Fix phpMyAdmin error and adjust configuration for Ubuntu 20.04/22.04
+ 
+# phpMyAdmin library file path
+FILELIBPHPMYADMIN="/usr/share/phpmyadmin/libraries/sql.lib.php"
+ 
+# Fix phpMyAdmin error
+if [[ -f "${FILELIBPHPMYADMIN}" ]]; then
+    sudo sed -i "s/|\s*\((count(\$analyzed_sql_results\['select_expr'\]\)/| (\1)/g" "${FILELIBPHPMYADMIN}"
+fi
+ 
+# Get Ubuntu version
+UBUNTU_VERSION=$(lsb_release -rs)
+ 
+# Adjust configuration based on Ubuntu version
+if [[ "${UBUNTU_VERSION}" == "20.04" || "${UBUNTU_VERSION}" == "22.04" ]]; then
+    # Update Yii framework URL creation method
+    sudo sed -i "s|ExplorerController::createUrl|Yii::app()->createUrl|g" /var/web/yaamp/models/db_coinsModel.php
+ 
+    # Add sleep to ensure changes are applied
+    sleep 2
+ 
+    # Update coin form to include auto-increment for coin ID
+    SEARCHLINECOINID="echo\sCUFHtml::openTag('fieldset',\sarray('class'=>'inlineLabels'));"
+    INSERTLINESCOINID="echo\tCUFHtml::openTag('fieldset',\tarray('class'=>'inlineLabels'));\nif(empty(\$coin->id))\t\$coin->id\t=\tdbolist(\"SELECT\t(MAX(id)+1)\tFROM\tcoins\")[0]['(MAX(id)+1)'];"
+    sudo sed -i "s#${SEARCHLINECOINID}#${INSERTLINESCOINID}#" /var/web/yaamp/modules/site/coin_form.php
+ 
+    echo "Configuration completed for Ubuntu ${UBUNTU_VERSION}"
+else
+    echo "Unsupported Ubuntu version: ${UBUNTU_VERSION}"
+fi
 
 	#Misc
 	cd ${absolutepath}
@@ -987,9 +1011,9 @@ clear
 	sleep 2
 	sudo systemctl status php${PHPVERSION}-fpm | sed -n "1,3p"
 	sleep 2
-	sudo chmmod 777 /var/web/yaamp/runtime >/dev/null 2>&1
+	sudo chmod 777 /var/web/yaamp/runtime >/dev/null 2>&1
 	sleep 2
-	sudo chmmod 777 /var/log/yiimp/debug.log >/dev/null 2>&1
+	sudo chmod 777 /var/log/yiimp/debug.log >/dev/null 2>&1
 	sleep 2
 	sudo screens restart main >/dev/null 2>&1
 	sleep 2
