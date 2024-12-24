@@ -1,6 +1,7 @@
 #!/bin/bash
 #####################################################
 # Modified by Vaudois for crypto use...
+# Further modified for Ubuntu 22.04 and PHP 8.2
 #####################################################
  
 absolutepath=absolutepathserver
@@ -161,53 +162,17 @@ function get_default_privateip {
  
         echo $address
 }
-
- function install_yiimp {
-    # Clone Yiimp repository
-    git clone https://github.com/tpruvot/yiimp.git /var/web
  
-    # Set permissions
-    sudo chown -R www-data:www-data /var/web
-    sudo chmod -R 755 /var/web
- 
-    # Configure Yiimp
-    cp /var/web/serverconfig.sample.php /var/web/serverconfig.php
-    # Edit serverconfig.php with appropriate settings
-}
- 
- function cleanup {
-    # Remove temporary files
-    rm -f /tmp/yiimp_install_*
- 
-    # Remove any backup files created during configuration
-    find /etc -name "*.bak" -delete
- 
-    echo "Cleanup completed."
-}
  
 # terminal art start screen.
 function term_art_server
 {
-    # Detect Ubuntu version
-    if [ -f /etc/lsb-release ]; then
-        . /etc/lsb-release
-        DISTRO=${DISTRIB_RELEASE}
-    else
-        DISTRO=$(lsb_release -sr)
-    fi
- 
-    if [[ "${DISTRO}" == "20.04" ]]; then
-         PHPINSTALL=7.4
-       elif [[ "${DISTRO}" == "22.04" ]]; then
-             PHPINSTALL=8.2
-           else
-        PHPINSTALL=7.4  # Default to PHP 7.4 if version is not 20.04 or 22.04
-    fi
+    PHPINSTALL=8.2
     clear
     echo
     startlogo
     echo -e "$YELLOW  Welcome to the Yiimp Installer Script , Fork By Vaudois!             $COL_RESET"
-    echo -e "$GREEN  Version:$COL_RESET$MAGENTA ${TAG}$GREEN Installation on Ubuntu ${MAGENTA}${DISTRO}  $COL_RESET"
+    echo -e "$GREEN  Version:$COL_RESET$MAGENTA ${TAG}$GREEN Installation on Ubuntu 22.04  $COL_RESET"
     echo -e "$CYAN  -------------------------------------------------------------------------------------  $COL_RESET"
     echo -e "$YELLOW  This script will install all the dependencies and will install Yiimp.            $COL_RESET"
     echo -e "$YELLOW  It will also install a MySQL database and a Web server.              $COL_RESET"
